@@ -2,17 +2,31 @@
 
 
 
-Multimodal AI application for early cognitive analysis.
+Early cognitive risk screening application.
 
 
 
-\## Structure
+\## Architecture
 
-\- frontend/   : Expo app
+\- Frontend: Expo (React Native)
 
-\- backend/    : Node.js + Express + MongoDB
+\- Backend: Node.js + Express
 
-\- ml-server/  : FastAPI + ML models
+\- ML Server: FastAPI (Python)
+
+\- Database: MongoDB
+
+
+
+\## Folder Structure
+
+frontend/   → Mobile app UI  
+
+backend/    → APIs, Auth, DB, Reports  
+
+ml-server/  → ML models \& scoring  
+
+docs/       → Documentation
 
 
 
