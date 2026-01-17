@@ -5,22 +5,30 @@ const jwt = require("jsonwebtoken");
 // SIGNUP
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, aadhaar, phone, age, locality } = req.body;
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
+    if (!name || !email || !password || !aadhaar || !phone) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ email }, { aadhaar }],
+    });
+
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await User.create({
+    await User.create({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      aadhaar,
+      phone,
+      age,
+      locality,
     });
 
     res.status(201).json({ message: "User created successfully" });
@@ -28,6 +36,7 @@ exports.signup = async (req, res) => {
     res.status(500).json({ message: "Signup failed" });
   }
 };
+
 
 // LOGIN
 exports.login = async (req, res) => {

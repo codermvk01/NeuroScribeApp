@@ -1,3 +1,4 @@
+import { AuthProvider } from '../context/AuthContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -49,6 +50,7 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
+  <AuthProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         {/* Add splash/onboarding/auth/guest screens first */}
@@ -62,5 +64,6 @@ function RootLayoutNav() {
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
-  );
+  </AuthProvider>
+);
 }
