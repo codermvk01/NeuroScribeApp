@@ -12,11 +12,12 @@ import {
 } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { useRouter } from 'expo-router';
-import { signup, login } from "../utils/api";
-import { saveToken } from "../context/AuthStorage";
+import { signup, login } from '../utils/api';
+import { saveToken } from '../context/AuthStorage';
 
 export default function AuthScreen() {
   const router = useRouter();
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
 
   const [aadhaar, setAadhaar] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,76 +29,91 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Picture upload handler (placeholder alert for now)
   const handleUploadPicture = () => {
     Alert.alert('Upload picture feature not implemented yet');
   };
 
   const handleSubmit = async () => {
-  if (!aadhaar || !phone || !name || !email || !password) {
-    Alert.alert('Error', 'Please fill all required fields');
-    return;
-  }
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
+    }
 
-  if (aadhaar.length !== 12) {
-    Alert.alert('Error', 'Aadhaar must be 12 digits');
-    return;
-  }
+    if (mode === 'signup') {
+      if (!aadhaar || !phone || !name) {
+        Alert.alert('Error', 'Please fill all required signup fields');
+        return;
+      }
+      if (aadhaar.length !== 12) {
+        Alert.alert('Error', 'Aadhaar must be 12 digits');
+        return;
+      }
+      if (phone.length !== 10) {
+        Alert.alert('Error', 'Phone number must be 10 digits');
+        return;
+      }
+    }
 
-  if (phone.length !== 10) {
-    Alert.alert('Error', 'Phone number must be 10 digits');
-    return;
-  }
+    try {
+      setLoading(true);
 
-  try {
-    setLoading(true);
+      let res;
 
-    // Signup with full profile
-    await signup({
-      name,
-      email,
-      password,
-      aadhaar,
-      phone,
-      age,
-      locality,
-    });
+      if (mode === 'signup') {
+        await signup({
+          name,
+          email,
+          password,
+          aadhaar,
+          phone,
+          age,
+          locality,
+        });
+        res = await login(email, password);
+      } else {
+        res = await login(email, password);
+      }
 
-    // Auto-login
-    const res = await login(email, password);
-
-    // Save JWT securely
-    await saveToken(res.token);
-
-    // Go to main app
-    router.replace('/(tabs)');
-  } catch (err: any) {
-    Alert.alert('Signup Error', err.message || 'Something went wrong');
-  } finally {
-    setLoading(false);
-  }
-};
-
+      await saveToken(res.token);
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      Alert.alert(
+        mode === 'login' ? 'Login Error' : 'Signup Error',
+        err.message || 'Something went wrong'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} >
-      <Text style={styles.title}>Sign Up</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Aadhaar Number"
-        keyboardType="number-pad"
-        maxLength={12}
-        value={aadhaar}
-        onChangeText={setAadhaar}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Phone Number"
-        keyboardType="phone-pad"
-        maxLength={10}
-        value={phone}
-        onChangeText={setPhone}
-      />
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>
+        {mode === 'login' ? 'Login' : 'Sign Up'}
+      </Text>
+
+      {mode === 'signup' && (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Aadhaar Number"
+            keyboardType="number-pad"
+            maxLength={12}
+            value={aadhaar}
+            onChangeText={setAadhaar}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Phone Number"
+            keyboardType="phone-pad"
+            maxLength={10}
+            value={phone}
+            onChangeText={setPhone}
+          />
+        </>
+      )}
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -114,37 +130,77 @@ export default function AuthScreen() {
         onChangeText={setPassword}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Age"
-        keyboardType="numeric"
-        value={age}
-        onChangeText={setAge}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Locality"
-        value={locality}
-        onChangeText={setLocality}
-      />
-      <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPicture}>
-        <Text style={styles.uploadButtonText}>Upload Picture</Text>
-        {picture && <Image source={{ uri: picture }} style={styles.imagePreview} />}
-      </TouchableOpacity>
+      {mode === 'signup' && (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Age"
+            keyboardType="numeric"
+            value={age}
+            onChangeText={setAge}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Locality"
+            value={locality}
+            onChangeText={setLocality}
+          />
+
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={handleUploadPicture}
+          >
+            <Text style={styles.uploadButtonText}>Upload Picture</Text>
+            {picture && (
+              <Image
+                source={{ uri: picture }}
+                style={styles.imagePreview}
+              />
+            )}
+          </TouchableOpacity>
+        </>
+      )}
+
       <View style={styles.submitButton}>
         <Button
-          title={loading ? 'Please wait...' : 'Submit'}
+          title={
+            loading
+              ? 'Please wait...'
+              : mode === 'login'
+              ? 'Login'
+              : 'Sign Up'
+          }
           color={Colors.light.primary}
           onPress={handleSubmit}
           disabled={loading}
         />
       </View>
+
+      <TouchableOpacity
+        style={{ marginTop: 20 }}
+        onPress={() =>
+          setMode(mode === 'login' ? 'signup' : 'login')
+        }
+      >
+        <Text
+          style={{
+            textAlign: 'center',
+            color: Colors.light.primary,
+          }}
+        >
+          {mode === 'login'
+            ? 'New user? Sign Up'
+            : 'Already have an account? Login'}
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

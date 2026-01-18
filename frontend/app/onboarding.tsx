@@ -21,7 +21,7 @@ export default function OnboardingScreen() {
           style={[GlobalStyles.primaryButton, styles.button]}
           onPress={() => router.push('/auth')}
         >
-          <Text style={GlobalStyles.primaryButtonText}>Sign Up</Text>
+          <Text style={GlobalStyles.primaryButtonText}>Login</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
