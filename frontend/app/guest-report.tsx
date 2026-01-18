@@ -1,14 +1,28 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 export default function GuestReport() {
+  const router = useRouter();
+
+  const handleSignupRedirect = async () => {
+    // Optional: ensure the user is still marked as guest
+    await AsyncStorage.setItem('isGuest', 'true');
+
+    // Redirect to Auth screen with signup mode
+    router.replace('/auth?mode=signup&reason=guest');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Generic Report</Text>
-        <Text style={styles.feedback}>Your responses have been recorded. To see full reports, please sign up.</Text>
-        <TouchableOpacity style={styles.ctaButton} onPress={() => alert('Navigate to Sign Up')}>
+        <Text style={styles.feedback}>
+          Your responses have been recorded. To see full reports, please sign up.
+        </Text>
+        <TouchableOpacity style={styles.ctaButton} onPress={handleSignupRedirect}>
           <Text style={styles.ctaText}>Sign Up to See Full Reports</Text>
         </TouchableOpacity>
       </View>
@@ -48,7 +62,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ctaButton: {
-    backgroundColor: Colors.light.accent,
+    backgroundColor: Colors.light.primary,
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: 'center',

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 const questions = [
   "Do you experience memory loss?",
@@ -11,14 +13,21 @@ const questions = [
 export default function GuestQuestionnaire() {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
+  const router = useRouter();
 
-  const handleAnswer = (answer: boolean) => {
+  const handleAnswer = async (answer: boolean) => {
     setAnswers(prev => ({ ...prev, [currentStep]: answer }));
+
     if (currentStep < questions.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      alert('Questionnaire submitted');
-      // Navigate or handle submission
+      // Mark user as guest
+      await AsyncStorage.setItem('isGuest', 'true');
+
+      // Navigate to guest report / results screen
+      const finalAnswers = JSON.stringify({ ...answers, [currentStep]: answer });
+      router.replace(`/guest-report?answers=${encodeURIComponent(finalAnswers)}`);
+
     }
   };
 
