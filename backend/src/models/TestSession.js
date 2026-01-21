@@ -27,7 +27,19 @@ const testSessionSchema = new mongoose.Schema(
       type: String,
       enum: ["Low", "Medium", "High"],
       default: "Low"
-    }
+    },
+    voiceTest: {
+  audioPath: {
+    type: String
+  },
+  prompt: {
+    type: String
+  },
+  recordedAt: {
+    type: Date
+  }
+},
+
   },
   {
     timestamps: true

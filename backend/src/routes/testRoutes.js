@@ -2,7 +2,39 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const testController = require("../controllers/testController");
+const multer = require("multer");
+const path = require("path");
 
 router.get("/protected", authMiddleware, testController.getProtectedData);
+
+module.exports = router;
+
+/* =========================
+   Multer config (voice)
+========================= */
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/voice");
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const filename = `voice-${Date.now()}${ext || ".m4a"}`;
+    cb(null, filename);
+  },
+});
+
+const upload = multer({ storage });
+
+/* =========================
+   Voice Test Upload Route
+========================= */
+
+router.post(
+  "/tests/voice/upload",
+  authMiddleware,
+  upload.single("file"),
+  testController.uploadVoiceTest
+);
 
 module.exports = router;

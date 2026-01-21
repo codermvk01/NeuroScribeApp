@@ -16,4 +16,7 @@ app.get("/", (req, res) => {
   res.json({ message: "NeuroScribe Plus API is running" });
 });
 
+app.use("/uploads", express.static("uploads"));
+app.use("/api", require("./routes/testRoutes"));
+
 module.exports = app;

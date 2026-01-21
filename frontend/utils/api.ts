@@ -81,25 +81,23 @@ export const authorizedFetch = async (
 
 export async function uploadAudio(uri: string, metadata: object) {
   const formData = new FormData();
+
   formData.append("file", {
     uri,
-    name: "voice-test.wav",
-    type: "audio/wav",
+    name: "voice.m4a",
+    type: "audio/m4a",
   } as any);
+
   formData.append("metadata", JSON.stringify(metadata));
 
-  const API_URL = "https://your-backend.com/api/upload"; // Replace later
-
-  const response = await fetch(API_URL, {
+  const response = await authorizedFetch("/tests/voice/upload", {
     method: "POST",
     body: formData,
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
   });
 
   if (!response.ok) {
-    throw new Error("Failed to upload");
+    const err = await response.json();
+    throw new Error(err.message || "Upload failed");
   }
 
   return response.json();
