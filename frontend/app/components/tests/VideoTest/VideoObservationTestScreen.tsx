@@ -5,6 +5,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import TestPrompt from '../TestPrompt';
 import { Colors } from '../../../../constants/Colors';
 import { uploadVideo } from '../../../../utils/api';
+import { useTests } from '../../../../context/TestsContext';
 
 const prompts = [
   'Stand up from the chair, walk 5 steps and return.',
@@ -22,6 +23,7 @@ export default function VideoObservationTestScreen() {
   const recordingPromiseRef = useRef<Promise<any> | null>(null);
 
   const [permission, requestPermission] = useCameraPermissions();
+  const { setTestStatus } = useTests();
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -49,6 +51,7 @@ export default function VideoObservationTestScreen() {
             timestamp: Date.now(),
           });
           setStatus('Video uploaded');
+          setTestStatus('video', 'completed');
         } catch {
           setStatus('Upload failed');
         }
@@ -56,6 +59,7 @@ export default function VideoObservationTestScreen() {
     } else {
       setRecording(true);
       setStatus('Recording...');
+      setTestStatus('video', 'in-progress');
       recordingPromiseRef.current = cameraRef.current.recordAsync();
     }
   };

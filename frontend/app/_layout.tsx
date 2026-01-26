@@ -1,4 +1,5 @@
 import { AuthProvider } from '../context/AuthContext';
+import { TestsProvider } from '../context/TestsContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -51,19 +52,21 @@ function RootLayoutNav() {
 
   return (
   <AuthProvider>
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {/* Add splash/onboarding/auth/guest screens first */}
-        <Stack.Screen name="splash" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="guest-questionnaire" options={{ headerShown: false }} />
-        {/* Tabs loaded last after auth/splash flow */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        {/* Keep modal if you have it */}
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <TestsProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          {/* Add splash/onboarding/auth/guest screens first */}
+          <Stack.Screen name="splash" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="guest-questionnaire" options={{ headerShown: false }} />
+          {/* Tabs loaded last after auth/splash flow */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* Keep modal if you have it */}
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </ThemeProvider>
+    </TestsProvider>
   </AuthProvider>
 );
 }

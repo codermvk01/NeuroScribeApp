@@ -5,6 +5,7 @@ import TestPrompt from '../TestPrompt';
 import { uploadAudio } from '../../../../utils/api';
 import { Colors } from '../../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTests } from '../../../../context/TestsContext';
 
 const voicePrompts = [
   'Please say hello',
@@ -59,6 +60,7 @@ export default function VoiceTestScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [hasRecordedOnce, setHasRecordedOnce] = useState(false);
+  const { setTestStatus } = useTests();
 
   async function handleRecordingComplete(uri: string) {
     setIsRecording(false);
@@ -74,6 +76,7 @@ export default function VoiceTestScreen() {
 
       setStatus('Audio uploaded');
       setUploadSuccess(true);
+      setTestStatus('voice', 'completed');
 
       setCurrentPromptIndex((prev) => (prev + 1) % voicePrompts.length);
     } catch {
@@ -93,6 +96,7 @@ export default function VoiceTestScreen() {
     if (isRecording) {
       setHasRecordedOnce(true);
       setStatus('Recording in progress...');
+      setTestStatus('voice', 'in-progress');
     } else if (hasRecordedOnce) {
       setStatus('Recording stopped');
     }

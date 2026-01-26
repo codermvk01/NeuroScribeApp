@@ -5,6 +5,7 @@ import TestPrompt from '../TestPrompt';
 import { Colors } from '../../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { uploadPicture } from '../../../../utils/api';
+import { useTests } from '../../../../context/TestsContext';
 
 const prompts = [
   'Please draw a clock.',
@@ -16,6 +17,7 @@ export default function PictureDrawingTestScreen() {
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [status, setStatus] = useState('');
+  const { setTestStatus } = useTests();
 
   async function requestGalleryPermission() {
     if (Platform.OS !== 'web') {
@@ -40,6 +42,7 @@ export default function PictureDrawingTestScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
       setStatus('Uploading image...');
+      setTestStatus('picture', 'in-progress');
 
 try {
   await uploadPicture(result.assets[0].uri, {
@@ -47,11 +50,11 @@ try {
     timestamp: Date.now(),
   });
   setStatus('Image uploaded');
+  setTestStatus('picture', 'completed');
 } catch {
   setStatus('Upload failed');
 }
-      setStatus('Image selected');
-      // TODO: Upload or handle the image as needed
+      
     }
   }
 
@@ -70,6 +73,7 @@ try {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
       setStatus('Uploading image...');
+      setTestStatus('picture', 'in-progress');
 
 try {
   await uploadPicture(result.assets[0].uri, {
@@ -77,11 +81,10 @@ try {
     timestamp: Date.now(),
   });
   setStatus('Image uploaded');
+  setTestStatus('picture', 'completed');
 } catch {
   setStatus('Upload failed');
 }
-      setStatus('Photo captured');
-      // TODO: Upload or handle the image as needed
     }
   }
 

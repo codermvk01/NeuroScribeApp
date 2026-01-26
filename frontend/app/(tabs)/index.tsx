@@ -6,6 +6,7 @@ import { Colors } from '../../constants/Colors';
 import { GlobalStyles } from '../../constants/Styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTests } from '../../context/TestsContext';
 
 export default function TestsScreen() {
   const router = useRouter();
@@ -13,11 +14,31 @@ export default function TestsScreen() {
   // ------------------------------
   // Test definitions
   // ------------------------------
-  const tests = [
-    { id: 1, name: 'Voice Test', icon: 'mic', status: 'not-started' },
-    { id: 2, name: 'Picture Drawing Test', icon: 'draw', status: 'not-started' },
-    { id: 3, name: 'Video Observation Test', icon: 'videocam', status: 'not-started' },
-  ];
+  const { tests } = useTests();
+
+  const testList = [
+  {
+    id: 1,
+    key: 'voice',
+    name: 'Voice Test',
+    icon: 'mic',
+    status: tests.voice,
+  },
+  {
+    id: 2,
+    key: 'picture',
+    name: 'Picture Drawing Test',
+    icon: 'draw',
+    status: tests.picture,
+  },
+  {
+    id: 3,
+    key: 'video',
+    name: 'Video Observation Test',
+    icon: 'videocam',
+    status: tests.video,
+  },
+];
 
   // ------------------------------
   // Status badge color helper
@@ -66,7 +87,7 @@ export default function TestsScreen() {
       </View>
 
       <View style={styles.testsGrid}>
-        {tests.map((test) => (
+        {testList.map((test) => (
           <TouchableOpacity
             key={test.id}
             style={[styles.testCard, GlobalStyles.card]}
