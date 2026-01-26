@@ -7,6 +7,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { ReportsProvider } from '../context/ReportsContext';
 
 import { useColorScheme } from '@/components/useColorScheme';
 
@@ -51,22 +52,24 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-  <AuthProvider>
-    <TestsProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          {/* Add splash/onboarding/auth/guest screens first */}
-          <Stack.Screen name="splash" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="guest-questionnaire" options={{ headerShown: false }} />
-          {/* Tabs loaded last after auth/splash flow */}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* Keep modal if you have it */}
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
-    </TestsProvider>
-  </AuthProvider>
+    <AuthProvider>
+        <ReportsProvider>
+          <TestsProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                {/* Add splash/onboarding/auth/guest screens first */}
+                <Stack.Screen name="splash" options={{ headerShown: false }} />
+                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+                <Stack.Screen name="auth" options={{ headerShown: false }} />
+                <Stack.Screen name="guest-questionnaire" options={{ headerShown: false }} />
+                {/* Tabs loaded last after auth/splash flow */}
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                {/* Keep modal if you have it */}
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              </Stack>
+            </ThemeProvider>
+          </TestsProvider>
+        </ReportsProvider>
+      </AuthProvider>
 );
 }

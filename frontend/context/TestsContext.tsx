@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { useReports } from './ReportsContext';
 
 type TestStatus = 'not-started' | 'in-progress' | 'completed';
 
@@ -27,6 +29,8 @@ const TestsContext = createContext<TestsContextType | undefined>(undefined);
 
 export function TestsProvider({ children }: { children: React.ReactNode }) {
   const [tests, setTests] = useState<TestsState>(DEFAULT_STATE);
+  const router = useRouter();
+  const { addReport } = useReports();
 
   // Load persisted state
   useEffect(() => {
@@ -46,6 +50,23 @@ export function TestsProvider({ children }: { children: React.ReactNode }) {
   const setTestStatus = (test: keyof TestsState, status: TestStatus) => {
     setTests((prev) => ({ ...prev, [test]: status }));
   };
+  useEffect(() => {
+  const allCompleted =
+    tests.voice === 'completed' &&
+    tests.picture === 'completed' &&
+    tests.video === 'completed';
+
+  if (allCompleted) {
+    addReport(); // <-- NEW
+
+    router.replace('/(tabs)/reports');
+
+    setTimeout(() => {
+      setTests(DEFAULT_STATE);
+      AsyncStorage.removeItem(STORAGE_KEY);
+    }, 500);
+  }
+}, [tests]);
 
   const resetTests = () => {
     setTests(DEFAULT_STATE);
