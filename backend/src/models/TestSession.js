@@ -39,11 +39,23 @@ const testSessionSchema = new mongoose.Schema(
     type: Date
   }
 },
+pictureTest: {
+  imagePath: {
+    type: String
+  },
+  prompt: {
+    type: String
+  },
+  recordedAt: {
+    type: Date
+  }
+},
 
   },
   {
     timestamps: true
-  }
+  },
+  
 );
 
 module.exports = mongoose.model("TestSession", testSessionSchema);

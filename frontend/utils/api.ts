@@ -102,3 +102,27 @@ export async function uploadAudio(uri: string, metadata: object) {
 
   return response.json();
 }
+
+export async function uploadPicture(uri: string, metadata: object) {
+  const formData = new FormData();
+
+  formData.append("file", {
+    uri,
+    name: "drawing.jpg",
+    type: "image/jpeg",
+  } as any);
+
+  formData.append("metadata", JSON.stringify(metadata));
+
+  const response = await authorizedFetch("/tests/picture/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || "Upload failed");
+  }
+
+  return response.json();
+}

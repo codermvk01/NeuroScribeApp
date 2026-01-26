@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import TestPrompt from '../TestPrompt';
 import { Colors } from '../../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
+import { uploadPicture } from '../../../../utils/api';
 
 const prompts = [
   'Please draw a clock.',
@@ -38,6 +39,17 @@ export default function PictureDrawingTestScreen() {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
+      setStatus('Uploading image...');
+
+try {
+  await uploadPicture(result.assets[0].uri, {
+    prompt: prompts[currentPromptIndex],
+    timestamp: Date.now(),
+  });
+  setStatus('Image uploaded');
+} catch {
+  setStatus('Upload failed');
+}
       setStatus('Image selected');
       // TODO: Upload or handle the image as needed
     }
@@ -57,6 +69,17 @@ export default function PictureDrawingTestScreen() {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
+      setStatus('Uploading image...');
+
+try {
+  await uploadPicture(result.assets[0].uri, {
+    prompt: prompts[currentPromptIndex],
+    timestamp: Date.now(),
+  });
+  setStatus('Image uploaded');
+} catch {
+  setStatus('Upload failed');
+}
       setStatus('Photo captured');
       // TODO: Upload or handle the image as needed
     }

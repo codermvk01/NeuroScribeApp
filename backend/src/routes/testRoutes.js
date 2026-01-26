@@ -38,3 +38,31 @@ router.post(
 );
 
 module.exports = router;
+
+/* =========================
+   Multer config (picture)
+========================= */
+
+const pictureStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/picture");
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname) || ".jpg";
+    const filename = `picture-${Date.now()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const uploadPicture = multer({ storage: pictureStorage });
+
+/* =========================
+   Picture Test Upload Route
+========================= */
+
+router.post(
+  "/tests/picture/upload",
+  authMiddleware,
+  uploadPicture.single("file"),
+  testController.uploadPictureTest
+);
