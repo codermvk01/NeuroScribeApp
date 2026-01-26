@@ -50,11 +50,23 @@ pictureTest: {
     type: Date
   }
 },
+videoTest: {
+  videoPath: {
+    type: String
+  },
+  prompt: {
+    type: String
+  },
+  recordedAt: {
+    type: Date
+  }
+},
 
   },
   {
     timestamps: true
   },
+  
   
 );
 

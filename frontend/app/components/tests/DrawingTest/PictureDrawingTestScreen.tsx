@@ -99,7 +99,7 @@ try {
           <MaterialIcons name="camera-alt" size={36} color="#fff" />
           <Text style={styles.buttonText}>Take Photo</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: Colors.light.accent }]} onPress={pickImageFromGallery}>
+        <TouchableOpacity style={[styles.button, { backgroundColor: Colors.light.primary }]} onPress={pickImageFromGallery}>
           <MaterialIcons name="photo-library" size={36} color="#fff" />
           <Text style={styles.buttonText}>Choose from Gallery</Text>
         </TouchableOpacity>

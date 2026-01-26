@@ -66,3 +66,31 @@ router.post(
   uploadPicture.single("file"),
   testController.uploadPictureTest
 );
+
+/* =========================
+   Multer config (video)
+========================= */
+
+const videoStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/video");
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname) || ".mp4";
+    const filename = `video-${Date.now()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const uploadVideo = multer({ storage: videoStorage });
+
+/* =========================
+   Video Test Upload Route
+========================= */
+
+router.post(
+  "/tests/video/upload",
+  authMiddleware,
+  uploadVideo.single("file"),
+  testController.uploadVideoTest
+);

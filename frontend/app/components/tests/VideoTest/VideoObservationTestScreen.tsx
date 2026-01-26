@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import TestPrompt from '../TestPrompt';
 import { Colors } from '../../../../constants/Colors';
+import { uploadVideo } from '../../../../utils/api';
 
 const prompts = [
   'Stand up from the chair, walk 5 steps and return.',
@@ -14,38 +16,85 @@ export default function VideoObservationTestScreen() {
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState('');
+  const [videoUri, setVideoUri] = useState<string | null>(null);
 
-  const toggleRecording = () => {
+  const cameraRef = useRef<CameraView | null>(null);
+  const recordingPromiseRef = useRef<Promise<any> | null>(null);
+
+  const [permission, requestPermission] = useCameraPermissions();
+
+  useEffect(() => {
+    if (!permission?.granted) {
+      requestPermission();
+    }
+  }, [permission]);
+
+  const toggleRecording = async () => {
+    if (!cameraRef.current) return;
+
     if (recording) {
       setRecording(false);
-      setStatus('Recording stopped.');
+      setStatus('Recording stopped');
+
+      cameraRef.current.stopRecording();
+
+      if (recordingPromiseRef.current) {
+        const video = await recordingPromiseRef.current;
+        setVideoUri(video.uri);
+
+        setStatus('Uploading video...');
+        try {
+          await uploadVideo(video.uri, {
+            prompt: prompts[currentPromptIndex],
+            timestamp: Date.now(),
+          });
+          setStatus('Video uploaded');
+        } catch {
+          setStatus('Upload failed');
+        }
+      }
     } else {
       setRecording(true);
       setStatus('Recording...');
+      recordingPromiseRef.current = cameraRef.current.recordAsync();
     }
   };
 
   const handleNextPrompt = () => {
     setStatus('');
+    setVideoUri(null);
     setCurrentPromptIndex((prev) => (prev + 1) % prompts.length);
   };
 
   return (
     <View style={styles.container}>
-      <TestPrompt testType="videoObservation" currentPromptIndex={currentPromptIndex} />
+      <TestPrompt
+        testType="videoObservation"
+        currentPromptIndex={currentPromptIndex}
+      />
 
-      <View style={styles.cameraPlaceholder}>
-        <Text style={styles.cameraPlaceholderText}>Camera Preview Here</Text>
-      </View>
+      <CameraView
+        ref={cameraRef}
+        style={styles.cameraPlaceholder}
+        mode="video"
+      />
 
       <TouchableOpacity
         style={[
           styles.recordButton,
-          { backgroundColor: recording ? Colors.light.error : Colors.light.primary },
+          {
+            backgroundColor: recording
+              ? Colors.light.error
+              : Colors.light.primary,
+          },
         ]}
         onPress={toggleRecording}
       >
-        <MaterialIcons name={recording ? 'stop' : 'videocam'} size={64} color="#fff" />
+        <MaterialIcons
+          name={recording ? 'stop' : 'videocam'}
+          size={64}
+          color="#fff"
+        />
       </TouchableOpacity>
 
       <Text style={styles.status}>{status}</Text>
@@ -72,12 +121,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: Colors.light.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraPlaceholderText: {
-    color: Colors.light.primary,
-    fontSize: 18,
   },
   recordButton: {
     width: 100,

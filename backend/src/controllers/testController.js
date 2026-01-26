@@ -82,3 +82,39 @@ exports.uploadPictureTest = async (req, res) => {
     return res.status(500).json({ message: "Picture upload failed" });
   }
 };
+exports.uploadVideoTest = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Video file is required" });
+    }
+
+    const metadata = req.body.metadata
+      ? JSON.parse(req.body.metadata)
+      : {};
+
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const session = new TestSession({
+      userId: req.user.userId,
+      videoTest: {
+        videoPath: req.file.path,
+        prompt: metadata.prompt || "",
+        recordedAt: metadata.timestamp
+          ? new Date(metadata.timestamp)
+          : new Date(),
+      },
+    });
+
+    await session.save();
+
+    return res.status(201).json({
+      success: true,
+      testSessionId: session._id,
+    });
+  } catch (error) {
+    console.error("Video upload error:", error);
+    return res.status(500).json({ message: "Video upload failed" });
+  }
+};

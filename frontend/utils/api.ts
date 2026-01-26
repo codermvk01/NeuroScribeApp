@@ -126,3 +126,27 @@ export async function uploadPicture(uri: string, metadata: object) {
 
   return response.json();
 }
+
+export async function uploadVideo(uri: string, metadata: object) {
+  const formData = new FormData();
+
+  formData.append("file", {
+    uri,
+    name: "video.mp4",
+    type: "video/mp4",
+  } as any);
+
+  formData.append("metadata", JSON.stringify(metadata));
+
+  const response = await authorizedFetch("/tests/video/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || "Upload failed");
+  }
+
+  return response.json();
+}
