@@ -2,17 +2,23 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../constants/Colors';
+import { getToken } from '../context/AuthStorage';
 
 export default function SplashScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace('/onboarding'); // Absolute path here
+     const timer = setTimeout(async () => {
+      const token = await getToken();
+      if (token) {
+        router.replace('/(tabs)');
+        return;
+      }
+      router.replace('/onboarding');
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   return (
     <View style={styles.container}>
