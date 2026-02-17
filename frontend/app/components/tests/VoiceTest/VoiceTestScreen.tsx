@@ -6,6 +6,7 @@ import { uploadAudio } from '../../../../utils/api';
 import { Colors } from '../../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTests } from '../../../../context/TestsContext';
+import { useRouter } from 'expo-router';
 
 const voicePrompts = [
   'Please say hello',
@@ -13,7 +14,6 @@ const voicePrompts = [
   'Please describe your day',
 ];
 
-// --- Inline waveform visualizer ---
 function WaveformVisualizer({ isActive }: { isActive: boolean }) {
   const [levels, setLevels] = useState(Array(16).fill(0.2));
 
@@ -60,7 +60,11 @@ export default function VoiceTestScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [hasRecordedOnce, setHasRecordedOnce] = useState(false);
+
   const { setTestStatus } = useTests();
+  const router = useRouter();
+
+  const isLastPrompt = currentPromptIndex === voicePrompts.length - 1;
 
   async function handleRecordingComplete(uri: string) {
     setIsRecording(false);
@@ -69,19 +73,27 @@ export default function VoiceTestScreen() {
 
     try {
       await uploadAudio(uri, {
-      prompt: voicePrompts[currentPromptIndex],
-      timestamp: Date.now(),
-});
-
+        prompt: voicePrompts[currentPromptIndex],
+        timestamp: Date.now(),
+      });
 
       setStatus('Audio uploaded');
       setUploadSuccess(true);
-      setTestStatus('voice', 'completed');
-
-      setCurrentPromptIndex((prev) => (prev + 1) % voicePrompts.length);
     } catch {
       setStatus('Upload failed');
       setUploadSuccess(false);
+    }
+  }
+
+  function handleNextPrompt() {
+    setUploadSuccess(false);
+    setStatus('');
+
+    if (isLastPrompt) {
+      setTestStatus('voice', 'completed');
+      router.replace('/');
+    } else {
+      setCurrentPromptIndex(prev => prev + 1);
     }
   }
 
@@ -109,7 +121,6 @@ export default function VoiceTestScreen() {
         currentPromptIndex={currentPromptIndex}
       />
 
-
       <WaveformVisualizer isActive={isRecording} />
 
       <VoiceRecorder
@@ -127,8 +138,6 @@ export default function VoiceTestScreen() {
               },
             ]}
             onPress={isRecording ? stopRecording : startRecording}
-            accessibilityRole="button"
-            accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
           >
             <MaterialIcons
               name={isRecording ? 'stop' : 'mic'}
@@ -142,14 +151,27 @@ export default function VoiceTestScreen() {
       {status !== '' && <Text style={styles.status}>{status}</Text>}
 
       {uploadSuccess && (
-        <View style={styles.successContainer}>
-          <MaterialIcons
-            name="check-circle"
-            size={28}
-            color={Colors.light.success || '#2ecc71'}
-          />
-          <Text style={styles.successText}>Audio uploaded successfully</Text>
-        </View>
+        <>
+          <View style={styles.successContainer}>
+            <MaterialIcons
+              name="check-circle"
+              size={28}
+              color={Colors.light.success || '#2ecc71'}
+            />
+            <Text style={styles.successText}>
+              Audio uploaded successfully
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={handleNextPrompt}
+          >
+            <Text style={styles.nextButtonText}>
+              {isLastPrompt ? 'Finish Test' : 'Next Prompt'}
+            </Text>
+          </TouchableOpacity>
+        </>
       )}
     </View>
   );
@@ -204,6 +226,20 @@ const styles = StyleSheet.create({
   successText: {
     marginLeft: 8,
     color: Colors.light.success || '#2ecc71',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  nextButton: {
+    marginTop: 20,
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+  },
+
+  nextButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

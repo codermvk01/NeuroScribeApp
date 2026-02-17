@@ -6,6 +6,7 @@ import TestPrompt from '../TestPrompt';
 import { Colors } from '../../../../constants/Colors';
 import { uploadVideo } from '../../../../utils/api';
 import { useTests } from '../../../../context/TestsContext';
+import { useRouter } from 'expo-router';
 
 const prompts = [
   'Stand up from the chair, walk 5 steps and return.',
@@ -18,12 +19,16 @@ export default function VideoObservationTestScreen() {
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState('');
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const cameraRef = useRef<CameraView | null>(null);
   const recordingPromiseRef = useRef<Promise<any> | null>(null);
 
   const [permission, requestPermission] = useCameraPermissions();
   const { setTestStatus } = useTests();
+  const router = useRouter();
+
+  const isLastPrompt = currentPromptIndex === prompts.length - 1;
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -50,15 +55,18 @@ export default function VideoObservationTestScreen() {
             prompt: prompts[currentPromptIndex],
             timestamp: Date.now(),
           });
+
           setStatus('Video uploaded');
-          setTestStatus('video', 'completed');
+          setUploadSuccess(true);
         } catch {
           setStatus('Upload failed');
+          setUploadSuccess(false);
         }
       }
     } else {
       setRecording(true);
       setStatus('Recording...');
+      setUploadSuccess(false);
       setTestStatus('video', 'in-progress');
       recordingPromiseRef.current = cameraRef.current.recordAsync();
     }
@@ -67,7 +75,14 @@ export default function VideoObservationTestScreen() {
   const handleNextPrompt = () => {
     setStatus('');
     setVideoUri(null);
-    setCurrentPromptIndex((prev) => (prev + 1) % prompts.length);
+    setUploadSuccess(false);
+
+    if (isLastPrompt) {
+      setTestStatus('video', 'completed');
+      router.replace('/');
+    } else {
+      setCurrentPromptIndex(prev => prev + 1);
+    }
   };
 
   return (
@@ -101,11 +116,20 @@ export default function VideoObservationTestScreen() {
         />
       </TouchableOpacity>
 
-      <Text style={styles.status}>{status}</Text>
+      {status !== '' && (
+        <Text style={styles.status}>{status}</Text>
+      )}
 
-      <TouchableOpacity style={styles.nextButton} onPress={handleNextPrompt}>
-        <Text style={styles.nextButtonText}>Next Prompt</Text>
-      </TouchableOpacity>
+      {uploadSuccess && (
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={handleNextPrompt}
+        >
+          <Text style={styles.nextButtonText}>
+            {isLastPrompt ? 'Finish Test' : 'Next Prompt'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

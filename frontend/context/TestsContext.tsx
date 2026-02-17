@@ -29,6 +29,8 @@ const TestsContext = createContext<TestsContextType | undefined>(undefined);
 
 export function TestsProvider({ children }: { children: React.ReactNode }) {
   const [tests, setTests] = useState<TestsState>(DEFAULT_STATE);
+  const [reportGenerated, setReportGenerated] = useState(false);
+
   const router = useRouter();
   const { addReport } = useReports();
 
@@ -48,25 +50,27 @@ export function TestsProvider({ children }: { children: React.ReactNode }) {
   }, [tests]);
 
   const setTestStatus = (test: keyof TestsState, status: TestStatus) => {
-    setTests((prev) => ({ ...prev, [test]: status }));
+    setTests(prev => ({ ...prev, [test]: status }));
   };
+
   useEffect(() => {
-  const allCompleted =
-    tests.voice === 'completed' &&
-    tests.picture === 'completed' &&
-    tests.video === 'completed';
+    const allCompleted =
+      tests.voice === 'completed' &&
+      tests.picture === 'completed' &&
+      tests.video === 'completed';
 
-  if (allCompleted) {
-    addReport(); // <-- NEW
+    if (allCompleted && !reportGenerated) {
+      setReportGenerated(true);
 
-    router.replace('/(tabs)/reports');
+      addReport();
 
-    setTimeout(() => {
+      // Reset immediately
       setTests(DEFAULT_STATE);
       AsyncStorage.removeItem(STORAGE_KEY);
-    }, 500);
-  }
-}, [tests]);
+
+      router.replace('/reports');
+    }
+  }, [tests, reportGenerated]);
 
   const resetTests = () => {
     setTests(DEFAULT_STATE);

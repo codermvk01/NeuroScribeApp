@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Platform,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import TestPrompt from '../TestPrompt';
 import { Colors } from '../../../../constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { uploadPicture } from '../../../../utils/api';
 import { useTests } from '../../../../context/TestsContext';
+import { useRouter } from 'expo-router';
 
 const prompts = [
   'Please draw a clock.',
@@ -17,17 +25,46 @@ export default function PictureDrawingTestScreen() {
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [status, setStatus] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+
   const { setTestStatus } = useTests();
+  const router = useRouter();
+
+  const isLastPrompt = currentPromptIndex === prompts.length - 1;
 
   async function requestGalleryPermission() {
     if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Permission to access gallery is required!');
+        Alert.alert(
+          'Permission needed',
+          'Permission to access gallery is required!'
+        );
         return false;
       }
     }
     return true;
+  }
+
+  async function handleUpload(uri: string) {
+    setImageUri(uri);
+    setUploadSuccess(false);
+    setStatus('Uploading image...');
+    setTestStatus('picture', 'in-progress');
+
+    try {
+      await uploadPicture(uri, {
+        prompt: prompts[currentPromptIndex],
+        timestamp: Date.now(),
+      });
+
+      setStatus('Image uploaded');
+      setUploadSuccess(true);
+    } catch {
+      setStatus('Upload failed');
+      setUploadSuccess(false);
+    }
   }
 
   async function pickImageFromGallery() {
@@ -39,29 +76,19 @@ export default function PictureDrawingTestScreen() {
       quality: 0.7,
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
-      setStatus('Uploading image...');
-      setTestStatus('picture', 'in-progress');
-
-try {
-  await uploadPicture(result.assets[0].uri, {
-    prompt: prompts[currentPromptIndex],
-    timestamp: Date.now(),
-  });
-  setStatus('Image uploaded');
-  setTestStatus('picture', 'completed');
-} catch {
-  setStatus('Upload failed');
-}
-      
+    if (!result.canceled && result.assets?.length) {
+      await handleUpload(result.assets[0].uri);
     }
   }
 
   async function takePhoto() {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    const { status } =
+      await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Permission to access camera is required!');
+      Alert.alert(
+        'Permission needed',
+        'Permission to access camera is required!'
+      );
       return;
     }
 
@@ -70,49 +97,63 @@ try {
       quality: 0.7,
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
-      setStatus('Uploading image...');
-      setTestStatus('picture', 'in-progress');
-
-try {
-  await uploadPicture(result.assets[0].uri, {
-    prompt: prompts[currentPromptIndex],
-    timestamp: Date.now(),
-  });
-  setStatus('Image uploaded');
-  setTestStatus('picture', 'completed');
-} catch {
-  setStatus('Upload failed');
-}
+    if (!result.canceled && result.assets?.length) {
+      await handleUpload(result.assets[0].uri);
     }
   }
 
   function handleNextPrompt() {
     setImageUri(null);
+    setUploadSuccess(false);
     setStatus('');
-    setCurrentPromptIndex((prev) => (prev + 1) % prompts.length);
+
+    if (isLastPrompt) {
+      setTestStatus('picture', 'completed');
+      router.replace('/');
+    } else {
+      setCurrentPromptIndex(prev => prev + 1);
+    }
   }
 
   return (
     <View style={styles.container}>
-      <TestPrompt testType="pictureDrawing" currentPromptIndex={currentPromptIndex} />
+      <TestPrompt
+        testType="pictureDrawing"
+        currentPromptIndex={currentPromptIndex}
+      />
+
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={[styles.button, { backgroundColor: Colors.light.primary }]} onPress={takePhoto}>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: Colors.light.primary }]}
+          onPress={takePhoto}
+        >
           <MaterialIcons name="camera-alt" size={36} color="#fff" />
           <Text style={styles.buttonText}>Take Photo</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: Colors.light.primary }]} onPress={pickImageFromGallery}>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: Colors.light.primary }]}
+          onPress={pickImageFromGallery}
+        >
           <MaterialIcons name="photo-library" size={36} color="#fff" />
           <Text style={styles.buttonText}>Choose from Gallery</Text>
         </TouchableOpacity>
       </View>
 
-      {imageUri && <Text style={styles.status}>{status}</Text>}
+      {status !== '' && (
+        <Text style={styles.status}>{status}</Text>
+      )}
 
-      <TouchableOpacity style={styles.nextButton} onPress={handleNextPrompt}>
-        <Text style={styles.nextButtonText}>Next Prompt</Text>
-      </TouchableOpacity>
+      {uploadSuccess && (
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={handleNextPrompt}
+        >
+          <Text style={styles.nextButtonText}>
+            {isLastPrompt ? 'Finish Test' : 'Next Prompt'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
