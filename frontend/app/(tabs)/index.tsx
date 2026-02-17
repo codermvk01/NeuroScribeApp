@@ -7,9 +7,15 @@ import { GlobalStyles } from '../../constants/Styles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTests } from '../../context/TestsContext';
+import { removeToken } from '../../context/AuthStorage';
 
 export default function TestsScreen() {
   const router = useRouter();
+
+  const handleLogout = async () => {
+    await removeToken();
+    router.replace('/auth');
+  };
 
   // ------------------------------
   // Test definitions
@@ -76,14 +82,14 @@ export default function TestsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Available Tests</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Available Tests</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <MaterialIcons name="logout" size={18} color={Colors.light.primary} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.subtitle}>Complete tests to unlock your report</Text>
-      </View>
-
-      <View style={styles.banner}>
-        <Text style={styles.bannerText}>
-          Complete your tests to unlock your report
-        </Text>
       </View>
 
       <View style={styles.testsGrid}>
@@ -130,6 +136,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.light.primary,
     marginBottom: 8,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.primaryLighter,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  logoutText: {
+    color: Colors.light.primary,
+    fontWeight: '600',
+    fontSize: 14,
   },
   subtitle: {
     fontSize: 16,
