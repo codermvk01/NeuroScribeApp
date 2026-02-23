@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
    API CONFIG
 ========================= */
 
-const API_BASE_URL = "http://192.168.1.105:5000/api";
+const API_BASE_URL = "http://192.168.1.105:5050/api";
 
 const getToken = async () => {
   return await SecureStore.getItemAsync("authToken");
@@ -90,7 +90,7 @@ export async function uploadAudio(uri: string, metadata: object) {
 
   formData.append("metadata", JSON.stringify(metadata));
 
-  const response = await authorizedFetch("/tests/voice/upload", {
+  const response = await authorizedFetch("/test/tests/voice/upload", {
     method: "POST",
     body: formData,
   });
@@ -114,7 +114,7 @@ export async function uploadPicture(uri: string, metadata: object) {
 
   formData.append("metadata", JSON.stringify(metadata));
 
-  const response = await authorizedFetch("/tests/picture/upload", {
+  const response = await authorizedFetch("/test/tests/picture/upload", {
     method: "POST",
     body: formData,
   });
@@ -138,7 +138,7 @@ export async function uploadVideo(uri: string, metadata: object) {
 
   formData.append("metadata", JSON.stringify(metadata));
 
-  const response = await authorizedFetch("/tests/video/upload", {
+  const response = await authorizedFetch("/test/tests/video/upload", {
     method: "POST",
     body: formData,
   });
