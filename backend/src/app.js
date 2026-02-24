@@ -19,6 +19,5 @@ app.get("/", (req, res) => {
 });
 
 app.use("/uploads", express.static("uploads"));
-app.use("/api", require("./routes/testRoutes"));
 
 module.exports = app;
