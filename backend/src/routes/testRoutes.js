@@ -13,7 +13,7 @@ module.exports = router;
    Multer config (voice)
 ========================= */
 
-const storage = multer.diskStorage({
+const storage = multer.memoryStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/voice");
   },
@@ -43,7 +43,7 @@ module.exports = router;
    Multer config (picture)
 ========================= */
 
-const pictureStorage = multer.diskStorage({
+const pictureStorage = multer.memoryStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/picture");
   },
@@ -71,7 +71,7 @@ router.post(
    Multer config (video)
 ========================= */
 
-const videoStorage = multer.diskStorage({
+const videoStorage = multer.memoryStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/video");
   },
