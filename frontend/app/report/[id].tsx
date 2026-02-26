@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
@@ -7,12 +14,20 @@ import { GlobalStyles } from '../../constants/Styles';
 import { Stack } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export default function ReportDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const overallScore = 43;
+  const scores = {
+    drawing: 28,
+    voice: 52,
+    behavior: 31,
+    overall: 43,
+  };
+
   type RiskBand = 'Low' | 'Moderate' | 'High';
   const riskBand: RiskBand = 'Moderate';
 
@@ -22,87 +37,210 @@ export default function ReportDetailScreen() {
     return '#C62828';
   };
 
-  const generatePDF = async () => {
+  const getBarColor = (score: number) => {
+    if (score <= 33) return '#2E7D32';
+    if (score <= 66) return '#F9A825';
+    return '#C62828';
+  };
+
+    const generatePDF = async () => {
     const html = `
-      <html>
-        <body style="font-family: Arial; padding: 40px; color: #333;">
-          <h1 style="margin-bottom: 5px;">NeuroScribe Report</h1>
-          <p><strong>Report ID:</strong> ${id}</p>
-          <p><strong>Date:</strong> ${new Date().toDateString()}</p>
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial;
+            padding: 40px;
+            color: #333;
+          }
+          h1 { margin-bottom: 5px; }
+          .section { margin-top: 25px; }
+          .score {
+            font-size: 34px;
+            font-weight: bold;
+            color: ${getRiskColor()};
+          }
+          .badge {
+            font-size: 18px;
+            font-weight: 600;
+            color: ${getRiskColor()};
+          }
+          .bar-container {
+            margin-top: 6px;
+            height: 8px;
+            background: #eaeaea;
+            border-radius: 6px;
+          }
+          .bar {
+            height: 8px;
+            border-radius: 6px;
+          }
+          .disclaimer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #777;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>NeuroScribe Screening Report</h1>
+        <p><strong>Report ID:</strong> ${id}</p>
+        <p><strong>Date:</strong> ${new Date().toDateString()}</p>
 
-          <hr style="margin: 20px 0;" />
-
+        <div class="section">
           <h2>Overall Risk Score</h2>
-          <h1 style="color:${getRiskColor()};">
-            ${overallScore} / 100
-          </h1>
-          <h3 style="color:${getRiskColor()};">
-            ${riskBand} Risk
-          </h3>
+          <div class="score">${scores.overall} / 100</div>
+          <div class="badge">${riskBand} Risk</div>
+        </div>
 
+        <div class="section">
+          <h2>Risk Breakdown</h2>
+
+          <p><strong>Drawing:</strong> ${scores.drawing}</p>
+          <div class="bar-container">
+            <div class="bar" style="width:${scores.drawing}%; background:${getBarColor(scores.drawing)};"></div>
+          </div>
+
+          <p><strong>Speech & Voice:</strong> ${scores.voice}</p>
+          <div class="bar-container">
+            <div class="bar" style="width:${scores.voice}%; background:${getBarColor(scores.voice)};"></div>
+          </div>
+
+          <p><strong>Behavior:</strong> ${scores.behavior}</p>
+          <div class="bar-container">
+            <div class="bar" style="width:${scores.behavior}%; background:${getBarColor(scores.behavior)};"></div>
+          </div>
+        </div>
+
+        <div class="section">
           <p>
-            Your screening results indicate moderate indicators of potential
-            neurocognitive or motor changes. This is a risk assessment only
-            and does not represent a medical diagnosis.
-          </p>
-
-          <hr style="margin: 20px 0;" />
-
-          <h2>Test Summary</h2>
-
-          <h3>Drawing Assessment</h3>
-          <p>
-            Low risk indicators. Spatial organization and sequencing were
-            largely within expected range.
-          </p>
-
-          <h3>Speech & Voice Analysis</h3>
-          <p>
-            Moderate risk indicators. Subtle speech variability and motor
-            patterns were observed.
-          </p>
-
-          <h3>Behavioral Observation</h3>
-          <p>
-            Low risk indicators. Movement and response patterns were within
-            expected range.
-          </p>
-
-          <hr style="margin: 20px 0;" />
-
-          <h2>Recommendations</h2>
-          <ul>
-            <li>Monitor cognitive and motor changes over time</li>
-            <li>Consider neurological consultation if symptoms persist</li>
-            <li>Repeat screening in 6–12 months</li>
-          </ul>
-
-          <hr style="margin: 20px 0;" />
-
-          <p style="font-size: 12px; color: gray;">
-            This report is generated using AI-based screening models and is
-            intended for early risk detection only. It does not provide a
-            medical diagnosis. Please consult a licensed healthcare
+            This report is generated using AI-based screening models and does not
+            constitute a medical diagnosis. Please consult a licensed healthcare
             professional for formal evaluation.
           </p>
-        </body>
-      </html>
+        </div>
+
+        <div class="disclaimer">
+          NeuroScribe AI Screening System
+        </div>
+      </body>
+    </html>
     `;
 
     try {
       const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to generate PDF');
+
+    // Ask permission to access Downloads
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+    if (!permissions.granted) {
+      Alert.alert('Permission required', 'Storage permission is needed.');
+      return;
     }
+
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    await FileSystem.StorageAccessFramework.createFileAsync(
+      permissions.directoryUri,
+      `NeuroScribe_Report_${id}.pdf`,
+      'application/pdf'
+    ).then(async (fileUri) => {
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    });
+
+    Alert.alert('Success', 'PDF downloaded to selected folder');
+  } catch (error) {
+    Alert.alert('Error', 'Failed to download PDF');
+  }
+};
+
+
+  const ScoreBar = ({
+    label,
+    value,
+    highlight = false,
+  }: {
+    label: string;
+    value: number;
+    highlight?: boolean;
+  }) => (
+    <View style={{ marginBottom: 14 }}>
+      <View style={styles.scoreRow}>
+        <Text
+          style={[
+            styles.scoreLabel,
+            highlight && { fontWeight: '600', color: Colors.light.text },
+          ]}
+        >
+          {label}
+        </Text>
+        <Text
+          style={[
+            styles.scoreValue,
+            highlight && { fontWeight: '600' },
+          ]}
+        >
+          {value} / 100
+        </Text>
+      </View>
+
+      <View style={[styles.barBackground, highlight && { height: 12 }]}>
+        <View
+          style={[
+            styles.barFill,
+            {
+              width: `${value}%`,
+              backgroundColor: getBarColor(value),
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+
+  // ---------------- RADAR LOGIC ----------------
+
+  const radarSize = 280;
+  const center = radarSize / 2;
+  const radius = radarSize * 0.35;
+
+  const labels = ['Drawing', 'Voice', 'Behavior', 'Overall'];
+  const data = [
+    scores.drawing,
+    scores.voice,
+    scores.behavior,
+    scores.overall,
+  ];
+
+  const angleStep = (2 * Math.PI) / data.length;
+
+  const getPoint = (value: number, index: number, scale = 1) => {
+    const angle = index * angleStep - Math.PI / 2;
+    const r = radius * (value / 100) * scale;
+    const x = center + r * Math.cos(angle);
+    const y = center + r * Math.sin(angle);
+    return { x, y };
   };
+
+  const dataPoints = data
+    .map((v, i) => {
+      const p = getPoint(v, i);
+      return `${p.x},${p.y}`;
+    })
+    .join(' ');
+
+  const gridLevels = [0.33, 0.66, 1];
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <MaterialIcons
             name="arrow-back"
@@ -113,12 +251,9 @@ export default function ReportDetailScreen() {
           <Text style={styles.title}>NeuroScribe Report</Text>
         </View>
 
-        {/* Main Card */}
         <View style={[styles.card, GlobalStyles.card]}>
-          <Text style={styles.sectionTitle}>Neurocognitive Screening Report</Text>
-          <Text style={styles.date}>Report ID: #{id}</Text>
-          <Text style={styles.date}>
-            Generated on {new Date().toDateString()}
+          <Text style={styles.sectionTitle}>
+            Neurocognitive Screening Report
           </Text>
 
           <View style={styles.divider} />
@@ -127,62 +262,121 @@ export default function ReportDetailScreen() {
 
           <View style={styles.scoreContainer}>
             <Text style={[styles.score, { color: getRiskColor() }]}>
-              {overallScore} / 100
+              {scores.overall} / 100
             </Text>
             <Text style={[styles.riskBand, { color: getRiskColor() }]}>
               {riskBand} Risk
             </Text>
           </View>
 
-          <Text style={styles.paragraph}>
-            Your screening results indicate moderate indicators of potential
-            neurocognitive or motor changes. This is a risk assessment only
-            and does not represent a medical diagnosis.
-          </Text>
+          <View style={styles.divider} />
+
+          <Text style={styles.subHeading}>Risk Breakdown</Text>
+
+          <ScoreBar label="Drawing Assessment" value={scores.drawing} />
+          <ScoreBar label="Speech & Voice" value={scores.voice} />
+          <ScoreBar label="Behavioral Observation" value={scores.behavior} />
 
           <View style={styles.divider} />
 
-          <Text style={styles.subHeading}>Test Summary</Text>
+          {/* ---------------- RADAR SECTION ---------------- */}
 
-          <Text style={styles.testTitle}>Drawing Assessment</Text>
-          <Text style={styles.paragraph}>
-            Low risk indicators. Spatial organization and sequencing were
-            largely within expected range.
-          </Text>
+          <Text style={styles.subHeading}>Cognitive Risk Profile</Text>
 
-          <Text style={styles.testTitle}>Speech & Voice Analysis</Text>
-          <Text style={styles.paragraph}>
-            Moderate risk indicators. Subtle speech variability and motor
-            patterns were observed.
-          </Text>
+          <View style={styles.radarContainer}>
+            <Svg width={radarSize} height={radarSize}>
+              {/* Grid */}
+              {gridLevels.map((level, idx) => {
+                const points = data
+                  .map((_, i) => {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const r = radius * level;
+                    const x = center + r * Math.cos(angle);
+                    const y = center + r * Math.sin(angle);
+                    return `${x},${y}`;
+                  })
+                  .join(' ');
 
-          <Text style={styles.testTitle}>Behavioral Observation</Text>
-          <Text style={styles.paragraph}>
-            Low risk indicators. Movement and response patterns were within
-            expected range.
-          </Text>
+                return (
+                  <Polygon
+                    key={idx}
+                    points={points}
+                    fill="none"
+                    stroke={Colors.light.primaryLighter}
+                    strokeWidth={1}
+                  />
+                );
+              })}
+
+              {/* Axis lines */}
+              {data.map((_, i) => {
+                const angle = i * angleStep - Math.PI / 2;
+                const x = center + radius * Math.cos(angle);
+                const y = center + radius * Math.sin(angle);
+
+                return (
+                  <Line
+                    key={i}
+                    x1={center}
+                    y1={center}
+                    x2={x}
+                    y2={y}
+                    stroke={Colors.light.primaryLighter}
+                    strokeWidth={1}
+                  />
+                );
+              })}
+
+              {/* Data polygon */}
+              <Polygon
+                points={dataPoints}
+                fill={getRiskColor()}
+                fillOpacity={0.25}
+                stroke={getRiskColor()}
+                strokeWidth={2}
+              />
+
+              {/* Labels */}
+              {labels.map((label, i) => {
+                const angle = i * angleStep - Math.PI / 2;
+                const labelRadius = radius + 20;
+                const x = center + labelRadius * Math.cos(angle);
+                const y = center + labelRadius * Math.sin(angle);
+
+                return (
+                  <SvgText
+                    key={i}
+                    x={x}
+                    y={y}
+                    fontSize="12"
+                    fill={Colors.light.textSecondary}
+                    textAnchor="middle"
+                  >
+                    {label}
+                  </SvgText>
+                );
+              })}
+            </Svg>
+          </View>
 
           <View style={styles.divider} />
 
-          <Text style={styles.subHeading}>Recommendations</Text>
-          <Text style={styles.paragraph}>
-            • Monitor cognitive and motor changes over time{"\n"}
-            • Consider neurological consultation if symptoms persist{"\n"}
-            • Repeat screening in 6–12 months
-          </Text>
+          <TouchableOpacity
+            style={styles.outlineButton}
+            onPress={() => router.push('/(tabs)/doctors')}
+          >
+            <Text style={styles.outlineButtonText}>
+              Consult Doctor
+            </Text>
+          </TouchableOpacity>
 
-          <View style={styles.divider} />
-
-          <Text style={styles.disclaimer}>
-            This report is generated using AI-based screening models and is
-            intended for early risk detection only. It does not provide a
-            medical diagnosis. Please consult a licensed healthcare
-            professional for formal evaluation.
-          </Text>
-
-          {/* Download Button */}
-          <TouchableOpacity style={styles.button} onPress={generatePDF}>
-            <Text style={styles.buttonText}>Download as PDF</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={generatePDF}
+          >
+            <Text style={styles.buttonText}>
+              Download as PDF
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -219,12 +413,8 @@ const styles = StyleSheet.create({
   subHeading: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 12,
     color: Colors.light.text,
-  },
-  date: {
-    fontSize: 14,
-    color: Colors.light.textSecondary,
   },
   divider: {
     height: 1,
@@ -244,23 +434,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
-  testTitle: {
-    fontSize: 15,
+  scoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  scoreValue: {
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  barBackground: {
+    height: 10,
+    backgroundColor: Colors.light.primaryLighter,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  radarContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  outlineButton: {
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.light.primary,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  outlineButtonText: {
+    color: Colors.light.primary,
     fontWeight: '600',
-    marginTop: 12,
-    color: Colors.light.text,
-  },
-  paragraph: {
-    fontSize: 15,
-    color: Colors.light.textSecondary,
-    lineHeight: 22,
-    marginTop: 4,
-  },
-  disclaimer: {
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-    lineHeight: 18,
-    marginBottom: 20,
   },
   button: {
     marginTop: 10,
