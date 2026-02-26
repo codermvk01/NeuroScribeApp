@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Audio } from 'expo-av';
 import VoiceRecorder from './VoiceRecorder';
 import TestPrompt from '../TestPrompt';
 import { uploadAudio } from '../../../../utils/api';
@@ -58,21 +59,57 @@ export default function VoiceTestScreen() {
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [status, setStatus] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [hasRecordedOnce, setHasRecordedOnce] = useState(false);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   const { setTestStatus } = useTests();
   const router = useRouter();
 
   const isLastPrompt = currentPromptIndex === voicePrompts.length - 1;
 
+  // ---------------- RECORD COMPLETE ----------------
   async function handleRecordingComplete(uri: string) {
     setIsRecording(false);
+    setRecordedUri(uri);
+    setStatus('Recording ready. Please listen before submitting.');
+  }
+
+  // ---------------- PLAYBACK ----------------
+  async function handlePlay() {
+    if (!recordedUri) return;
+
+    const { sound } = await Audio.Sound.createAsync(
+      { uri: recordedUri },
+      { shouldPlay: true }
+    );
+
+    setSound(sound);
+
+    sound.setOnPlaybackStatusUpdate(status => {
+      if ((status as any).didJustFinish) {
+        sound.unloadAsync();
+        setSound(null);
+      }
+    });
+  }
+
+  // ---------------- RETAKE ----------------
+  function handleRetake() {
+    setRecordedUri(null);
     setUploadSuccess(false);
+    setStatus('');
+  }
+
+  // ---------------- SUBMIT ----------------
+  async function handleSubmit() {
+    if (!recordedUri) return;
+
     setStatus('Uploading audio...');
+    setUploadSuccess(false);
 
     try {
-      await uploadAudio(uri, {
+      await uploadAudio(recordedUri, {
         prompt: voicePrompts[currentPromptIndex],
         timestamp: Date.now(),
       });
@@ -85,7 +122,9 @@ export default function VoiceTestScreen() {
     }
   }
 
+  // ---------------- NEXT PROMPT ----------------
   function handleNextPrompt() {
+    setRecordedUri(null);
     setUploadSuccess(false);
     setStatus('');
 
@@ -106,10 +145,9 @@ export default function VoiceTestScreen() {
     setIsRecording(isRecording);
 
     if (isRecording) {
-      setHasRecordedOnce(true);
       setStatus('Recording in progress...');
       setTestStatus('voice', 'in-progress');
-    } else if (hasRecordedOnce) {
+    } else {
       setStatus('Recording stopped');
     }
   }
@@ -123,33 +161,68 @@ export default function VoiceTestScreen() {
 
       <WaveformVisualizer isActive={isRecording} />
 
-      <VoiceRecorder
-        onRecordingComplete={handleRecordingComplete}
-        onRecordingStatus={handleRecordingStatus}
-      >
-        {({ isRecording, startRecording, stopRecording }) => (
-          <TouchableOpacity
-            style={[
-              styles.recordButton,
-              {
-                backgroundColor: isRecording
-                  ? Colors.light.error
-                  : Colors.light.primary,
-              },
-            ]}
-            onPress={isRecording ? stopRecording : startRecording}
-          >
-            <MaterialIcons
-              name={isRecording ? 'stop' : 'mic'}
-              size={60}
-              color="#fff"
-            />
-          </TouchableOpacity>
-        )}
-      </VoiceRecorder>
+      {!recordedUri && (
+        <VoiceRecorder
+          onRecordingComplete={handleRecordingComplete}
+          onRecordingStatus={handleRecordingStatus}
+        >
+          {({ isRecording, startRecording, stopRecording }) => (
+            <TouchableOpacity
+              style={[
+                styles.recordButton,
+                {
+                  backgroundColor: isRecording
+                    ? Colors.light.error
+                    : Colors.light.primary,
+                },
+              ]}
+              onPress={isRecording ? stopRecording : startRecording}
+            >
+              <MaterialIcons
+                name={isRecording ? 'stop' : 'mic'}
+                size={60}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          )}
+        </VoiceRecorder>
+      )}
 
       {status !== '' && <Text style={styles.status}>{status}</Text>}
 
+      {/* Playback + Retake + Submit */}
+      {recordedUri && !uploadSuccess && (
+        <View style={{ marginTop: 24, alignItems: 'center' }}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handlePlay}
+          >
+            <Text style={styles.secondaryButtonText}>
+              ▶ Play Recording
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleRetake}
+          >
+            <Text style={styles.secondaryButtonText}>
+              🔁 Retake
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={handleSubmit}
+          >
+            <Text style={styles.nextButtonText}>
+              Submit
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Success + Next */}
       {uploadSuccess && (
         <>
           <View style={styles.successContainer}>
@@ -211,7 +284,7 @@ const styles = StyleSheet.create({
 
   status: {
     color: Colors.light.primary,
-    marginTop: 32,
+    marginTop: 24,
     fontSize: 16,
     textAlign: 'center',
     fontWeight: '600',
@@ -231,7 +304,7 @@ const styles = StyleSheet.create({
   },
 
   nextButton: {
-    marginTop: 20,
+    marginTop: 16,
     backgroundColor: Colors.light.primary,
     paddingVertical: 12,
     paddingHorizontal: 30,
@@ -240,6 +313,21 @@ const styles = StyleSheet.create({
 
   nextButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  secondaryButton: {
+    marginBottom: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.primary,
+  },
+
+  secondaryButtonText: {
+    color: Colors.light.primary,
     fontSize: 16,
     fontWeight: '600',
   },
